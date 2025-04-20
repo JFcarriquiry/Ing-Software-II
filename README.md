@@ -113,7 +113,7 @@ cd restaurant-reservations
 docker-compose up --build
 ```
 
-## Roadmap sugerido
+## Roadmap planificado
 1. **Sprint 1** – Mapa con markers desde DB ✔️  
 2. **Sprint 2** – Crear reservas, actualizaciones en vivo via socket.io  
 3. **Sprint 3** – Panel admin p/ restaurantes, ratings y fotos  
