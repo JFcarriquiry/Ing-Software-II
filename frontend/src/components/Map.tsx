@@ -69,7 +69,7 @@ export default function Map({ user }: MapProps) {
         '/api/reservations',
         {
           restaurant_id: selected?.id,
-          reservation_at: dateTime,
+          reservation_at: new Date(dateTime).toISOString(),
           guests
         },
         { withCredentials: true }
