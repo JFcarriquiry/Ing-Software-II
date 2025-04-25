@@ -1,28 +1,43 @@
+// frontend/src/App.tsx
 import React from 'react';
+import LoginPage from './components/LoginGrid';
 import Map from './components/Map';
 import LoginButton from './components/LoginButton';
 import { LogoutButton } from './components/LogoutButton';
 import ReservationsList from './components/ReservationsList';
 import { useAuth } from './hooks/useAuth';
+import  temaPrincipal  from '../theme/temaPrincipal';
+import Navbar from './components/Navbar';
+import { ThemeProvider } from '@emotion/react';
 
-export default function App() {
+const App: React.FC = () => {
   const { user, loading } = useAuth();
 
-  if (loading) return <p>Cargando usuario...</p>;
+  if (loading) {
+    return <p>Cargando usuario...</p>;
+  }
 
+  // Si no hay usuario, mostramos toda la pantalla de login
+  if (!user) {
+    return (
+      <ThemeProvider theme={temaPrincipal}>
+        <LoginPage />
+      </ThemeProvider>
+    );
+  }
+
+  // Ya está logueado: mostramos el dashboard
   return (
-    <div className="App">
-      <h1>Explora, elige, reserva. Así de simple.</h1>
-      {!user ? (
-        <LoginButton />
-      ) : (
-        <>
-          <p>Bienvenido, {user.email}</p>
-          <LogoutButton />
-          <Map user={user} />
-          <ReservationsList user={user} />
-        </>
-      )}
+    <ThemeProvider theme={temaPrincipal}>
+      <Navbar />
+      <div className="App" style={{ padding: 16 }}>
+      <p>Bienvenido, {user.email}</p>
+      <Map user={user} />
+      <ReservationsList user={user} />
     </div>
+    </ThemeProvider>
   );
-}
+};
+
+export default App;
+
