@@ -2,6 +2,8 @@
 import React from 'react';
 import LoginPage from './components/LoginGrid';
 import Map from './components/Map';
+import LoginButton from './components/LoginButton';
+import { LogoutButton } from './components/LogoutButton';
 import ReservationsList from './components/ReservationsList';
 import { useAuth } from './hooks/useAuth';
 import  temaPrincipal  from '../theme/temaPrincipal';
