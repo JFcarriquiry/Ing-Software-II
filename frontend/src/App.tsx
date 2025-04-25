@@ -1,6 +1,7 @@
 import React from 'react';
 import Map from './components/Map';
 import LoginButton from './components/LoginButton';
+import { LogoutButton } from './components/LogoutButton';
 import ReservationsList from './components/ReservationsList';
 import { useAuth } from './hooks/useAuth';
 
@@ -17,6 +18,7 @@ export default function App() {
       ) : (
         <>
           <p>Bienvenido, {user.email}</p>
+          <LogoutButton />
           <Map user={user} />
           <ReservationsList user={user} />
         </>
