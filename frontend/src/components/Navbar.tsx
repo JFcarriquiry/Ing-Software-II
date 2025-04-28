@@ -13,6 +13,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import { useAuth } from '../hooks/useAuth';
 import LogoutButton from './LogoutButton';
 
 
@@ -20,19 +21,21 @@ const pages = ['Inicio', 'Sobre Nosotros'];
 const settings = ['Perfil', 'Cerrar Sesión'];
 
 function ResponsiveAppBar() {
+  const { user } = useAuth();
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
   };
 
-  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElUser(event.currentTarget);
-  };
-
   const handleCloseNavMenu = () => {
     setAnchorElNav(null);
+  };
+
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
   };
 
   const handleCloseUserMenu = () => {
@@ -133,7 +136,9 @@ function ResponsiveAppBar() {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Joaco" src="null" />
+                <Avatar alt={user?.email || 'Usuario'}>
+                  {user?.email?.charAt(0).toUpperCase() || 'BookEat'}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu
