@@ -7,7 +7,8 @@ interface Reservation {
   restaurant_id: number;
   restaurant_name: string;
   reservation_at: string;
-  guests: number;
+  requested_guests: number;   // nuevo
+  guests: number;             // par, sigue estando por si acaso
 }
 
 interface Props {
@@ -58,7 +59,7 @@ const ReservationsList: React.FC<Props> = ({ user }) => {
       <ul>
         {reservations.map((r) => (
           <li key={r.id} style={{ marginBottom: 10 }}>
-            {r.restaurant_name} - {new Date(r.reservation_at).toLocaleString()} - {r.guests} personas
+            {r.restaurant_name} - {new Date(r.reservation_at).toLocaleString()} - {r.requested_guests} personas
             <button onClick={() => handleCancel(r.id)} style={{ marginLeft: '10px' }}>
               Cancelar
             </button>
