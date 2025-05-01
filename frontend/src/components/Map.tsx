@@ -12,8 +12,8 @@ interface Restaurant {
   latitude: string;
   longitude: string;
   description: string;
-  seats_free: number;
   seats_total: number;
+  tables_total?: number;
   phone?: string;
   email?: string;
   address?: string;
@@ -31,7 +31,9 @@ export default function Map({ user }: MapProps) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [guests, setGuests] = useState(1);
-  const [dateTime, setDateTime] = useState('');
+  const [date, setDate] = useState('');
+  const [availability, setAvailability] = useState<{ start: number; available_tables: number }[]>([]);
+  const [selectedInterval, setSelectedInterval] = useState('');
   const [message, setMessage] = useState('');
   const [socket] = useState(() =>
     io('http://localhost:3001', { transports: ['websocket'] })
@@ -54,29 +56,44 @@ export default function Map({ user }: MapProps) {
     };
   }, [restaurants]);
 
+  useEffect(() => {
+    if (selected && date) {
+      axios
+        .get<{ start: number; available_tables: number }[]>(
+          `/api/restaurants/${selected.id}/availability?date=${date}`,
+          { withCredentials: true }
+        )
+        .then((res) => setAvailability(res.data))
+        .catch(console.error);
+    }
+  }, [selected, date]);
+
   const handleMarkerClick = async (r: Restaurant) => {
     const res = await axios.get(`/api/restaurants/${r.id}`);
     setSelected(res.data);
     setGuests(1);
-    setDateTime('');
+    setDate('');
+    setAvailability([]);
+    setSelectedInterval('');
     setMessage('');
   };
 
   const handleReserve = async () => {
     setMessage('');
     try {
-      await axios.post(
+      const res = await axios.post(
         '/api/reservations',
         {
           restaurant_id: selected?.id,
-          reservation_at: new Date(dateTime).toISOString(),
+          reservation_at: Number(selectedInterval),
           guests
         },
         { withCredentials: true }
       );
-      window.alert('Reserva confirmada');
+      const { requested_guests } = res.data;
+      window.alert(`Reserva de ${requested_guests} personas confirmada`);
       window.dispatchEvent(new Event('reservation-made'));
-      setMessage('Reserva confirmada');
+      setMessage(`Reserva de ${requested_guests} personas confirmada`);
       setSelected(null);
     } catch (err: any) {
       setMessage(err.response?.data?.error || 'Error al reservar');
@@ -96,7 +113,7 @@ export default function Map({ user }: MapProps) {
           <MarkerF
             key={r.id}
             position={{ lat: Number(r.latitude), lng: Number(r.longitude) }}
-            title={`${r.name} (${r.seats_free}/${r.seats_total} asientos libres)`}
+            title={`${r.name} (${r.seats_total} asientos totales)`}
             onClick={() => handleMarkerClick(r)}
           />
         ))}
@@ -104,22 +121,42 @@ export default function Map({ user }: MapProps) {
       {selected && (
         <div style={{ position: 'fixed', top: 80, right: 20, background: '#fff', padding: 20, border: '1px solid #ccc', zIndex: 10 }}>
           <h2>{selected.name}</h2>
+          <p>Horario: 10:00 AM - 01:00 AM</p>
           <p>{selected.description}</p>
           <p>Dirección: {selected.address}</p>
           <p>Teléfono: {selected.phone}</p>
           <p>Email: {selected.email}</p>
-          <p>Asientos libres: {selected.seats_free} / {selected.seats_total}</p>
+          <p>Mesas disponibles: {selected.tables_total}</p>
+          <label>
+            Fecha:
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <br />
+          {availability.length > 0 && (
+            <label>
+              Intervalo:
+              <select value={selectedInterval} onChange={(e) => setSelectedInterval(e.target.value)}>
+                <option value="">Selecciona intervalo</option>
+                {availability.map((a) => (
+                  <option key={a.start} value={a.start}>
+                    {(() => {
+                      const dt = new Date(a.start);
+                      const h = String(dt.getHours()).padStart(2, '0');
+                      const m = String(dt.getMinutes()).padStart(2, '0');
+                      return `${h}:${m}`;
+                    })()} ({a.available_tables} mesas)
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <br />
           <label>
             Personas:
-            <input type="number" min={1} max={selected.seats_free} value={guests} onChange={e => setGuests(Number(e.target.value))} />
+            <input type="number" min={1} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
           </label>
           <br />
-          <label>
-            Fecha y hora:
-            <input type="datetime-local" value={dateTime} onChange={e => setDateTime(e.target.value)} />
-          </label>
-          <br />
-          <button onClick={handleReserve} disabled={!dateTime || guests < 1 || guests > selected.seats_free}>
+          <button onClick={handleReserve} disabled={!selectedInterval || guests < 1}>
             Reservar
           </button>
           <button onClick={() => setSelected(null)} style={{ marginLeft: 10 }}>
