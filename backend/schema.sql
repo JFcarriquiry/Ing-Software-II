@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS restaurants (
     phone           VARCHAR(25),
     email           VARCHAR(120),
     address         TEXT,
-    latitude        DECIMAL(9,6) NOT NULL,
-    longitude       DECIMAL(9,6) NOT NULL,
+    latitude        DECIMAL(18,15) NOT NULL,
+    longitude       DECIMAL(18,15) NOT NULL,
     seats_total     INT CHECK (seats_total > 0),
     -- seats_free manejada dinámicamente por intervalos
     created_at      TIMESTAMP DEFAULT NOW()
