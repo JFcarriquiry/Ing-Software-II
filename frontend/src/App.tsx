@@ -9,6 +9,10 @@ import { useAuth } from './hooks/useAuth';
 import  temaPrincipal  from '../theme/temaPrincipal';
 import Navbar from './components/Navbar';
 import { ThemeProvider } from '@emotion/react';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import {es} from 'date-fns/locale/es'; 
+
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
@@ -28,14 +32,16 @@ const App: React.FC = () => {
 
   // Ya está logueado: mostramos el dashboard
   return (
-    <ThemeProvider theme={temaPrincipal}>
-      <Navbar />
-      <div className="App" style={{ padding: 16 }}>
-      <p>Bienvenido, {user.email}</p>
-      <Map user={user} />
-      <ReservationsList user={user} />
-    </div>
-    </ThemeProvider>
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+      <ThemeProvider theme={temaPrincipal}>
+        <Navbar />
+        <div className="App" style={{ padding: 16 }}>
+        <p>Bienvenido, {user.email}</p>
+        <Map user={user} />
+        <ReservationsList user={user} />
+      </div>
+      </ThemeProvider>
+    </LocalizationProvider>
   );
 };
 
