@@ -2,8 +2,6 @@ import React from 'react';
 import styles from '../styles/ReserveCard.module.scss';
 import { Restaurant } from './Map';
 import { DatePicker } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 interface Availability {
   start: number;
@@ -58,7 +56,6 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
 
       <label>
         Fecha:
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
           <DatePicker
             value={new Date(date)}
             onChange={handleDateChange}
@@ -70,7 +67,6 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
               },
             }}
           />
-        </LocalizationProvider>
       </label>
 
       {availability.length > 0 && (
