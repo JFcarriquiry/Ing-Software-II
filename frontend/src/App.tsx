@@ -36,13 +36,7 @@ const App: React.FC = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <ThemeProvider theme={temaPrincipal}>
         <Navbar />
-        <div className="App" style={{ padding: 16 }}>
-        <p>Bienvenido, {user.email}</p>
-        <Map user={user} />
-        <ReservationsList user={user} />
-      </div>
-      <MapGrid user={user} />
-
+        <MapGrid user={user} />
       </ThemeProvider>
     </LocalizationProvider>
   );
