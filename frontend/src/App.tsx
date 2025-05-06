@@ -30,13 +30,14 @@ const App: React.FC = () => {
       </ThemeProvider>
     );
   }
-
+  
   // Ya está logueado: mostramos el dashboard
+  // Mapa nuevo con el overlay a la izquierda, lista de reservas a la derecha
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <ThemeProvider theme={temaPrincipal}>
         <Navbar />
-        <MapGrid user={user} />
+        <MapGrid user={user} /> 
       </ThemeProvider>
     </LocalizationProvider>
   );
