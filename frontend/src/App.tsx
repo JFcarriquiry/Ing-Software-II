@@ -12,6 +12,7 @@ import { ThemeProvider } from '@emotion/react';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import {es} from 'date-fns/locale/es'; 
+import MapGrid from './components/mapGrid';
 
 
 const App: React.FC = () => {
@@ -29,17 +30,14 @@ const App: React.FC = () => {
       </ThemeProvider>
     );
   }
-
+  
   // Ya está logueado: mostramos el dashboard
+  // Mapa nuevo con el overlay a la izquierda, lista de reservas a la derecha
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <ThemeProvider theme={temaPrincipal}>
         <Navbar />
-        <div className="App" style={{ padding: 16 }}>
-        <p>Bienvenido, {user.email}</p>
-        <Map user={user} />
-        <ReservationsList user={user} />
-      </div>
+        <MapGrid user={user} /> 
       </ThemeProvider>
     </LocalizationProvider>
   );
