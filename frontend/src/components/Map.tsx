@@ -5,8 +5,9 @@ import { GoogleMap, MarkerF, useLoadScript } from '@react-google-maps/api';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { User } from '../hooks/useAuth';
+import ReserveCard from './ReserveCard';
 
-interface Restaurant {
+export interface Restaurant {
   id: number;
   name: string;
   latitude: string;
@@ -123,52 +124,21 @@ export default function Map({ user }: MapProps) {
         ))}
       </GoogleMap>
       {selected && (
-        <div style={{ position: 'fixed', top: 80, right: 20, background: '#fff', padding: 20, border: '1px solid #ccc', zIndex: 10 }}>
-          <h2>{selected.name}</h2>
-          <p>Horario: 10:00 AM - 01:00 AM</p>
-          <p>{selected.description}</p>
-          <p>Dirección: {selected.address}</p>
-          <p>Teléfono: {selected.phone}</p>
-          <p>Email: {selected.email}</p>
-          <p>Mesas disponibles: {selected.tables_total}</p>
-          <label>
-            Fecha:
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <br />
-          {availability.length > 0 && (
-            <label>
-              Intervalo:
-              <select value={selectedInterval} onChange={(e) => setSelectedInterval(e.target.value)}>
-                <option value="">Selecciona intervalo</option>
-                {availability.map((a) => (
-                  <option key={a.start} value={a.start}>
-                    {(() => {
-                      const dt = new Date(a.start);
-                      const h = String(dt.getHours()).padStart(2, '0');
-                      const m = String(dt.getMinutes()).padStart(2, '0');
-                      return `${h}:${m}`;
-                    })()} ({a.available_tables} mesas)
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <br />
-          <label>
-            Personas:
-            <input type="number" min={1} value={guests} onChange={(e) => setGuests(Number(e.target.value))} />
-          </label>
-          <br />
-          <button onClick={handleReserve} disabled={!selectedInterval || guests < 1}>
-            Reservar
-          </button>
-          <button onClick={() => setSelected(null)} style={{ marginLeft: 10 }}>
-            Cerrar
-          </button>
-          {message && <p>{message}</p>}
-        </div>
-      )}
+        <ReserveCard
+          selected={selected}
+          availability={availability}
+          selectedInterval={selectedInterval}
+          setSelectedInterval={setSelectedInterval}
+          date={date}
+          setDate={setDate}
+          guests={guests}
+          setGuests={setGuests}
+          handleReserve={handleReserve}
+          setSelected={setSelected}
+          message={message}
+        />
+    )}
+
     </>
   );
 }
