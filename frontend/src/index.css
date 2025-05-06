@@ -29,6 +29,18 @@ button:hover {
   background: #8a8a8a;
 }
 
+#buttons-navbar{
+  transition: color 0.2s;
+  margin-left: 1%;
+  background: transparent;
+}
+
+#buttons-navbar:hover{
+  cursor: pointer;
+  background: transparent;
+  color: rgb(177, 177, 177);
+}
+
 .modal {
   position: fixed;
   top: 50%;
