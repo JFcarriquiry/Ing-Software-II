@@ -26,15 +26,25 @@ export const getAvailability = async (req: Request, res: Response) => {
   if (!date) return res.status(400).json({ error: 'Date query parameter is required' });
   // Parse date and compute local midnight
   const [y, m, d] = date.split('-').map(Number);
-  const base = new Date(y, m - 1, d, 0, 0, 0).getTime();
- // ---- genera intervalos 10:00 → 23:30 (cada 15’)
-  const openMin = 10 * 60;
-  const lastResMin = 23 * 60 + 30;
+  // const base = Date.UTC(y, m - 1, d, 0, 0, 0); // UTC midnight for the selected day. No longer directly used for slot start.
+
+  const TZ_OFFSET_MS = 3 * 60 * 60 * 1000; // Uruguay is UTC-3, so UTC = local + 3h. This offset is added to local time components to get UTC.
+
+  // ---- genera intervalos 10:00 → 23:30 (cada 15’)
+  const openMin = 10 * 60; // Local 10:00 AM in minutes from midnight
+  const lastResMin = 23 * 60 + 30; // Local 11:30 PM in minutes from midnight
   const intervals: { start: number; end: number }[] = [];
+  const slotDurationMs = 15 * 60 * 1000; // Duration of each availability slot (15 minutes)
+
   for (let mins = openMin; mins <= lastResMin; mins += 15) {
-    const start = base + mins * 60_000 + TZ_OFFSET_MS;
-    const end = start + 90 * 60000;
-    intervals.push({ start, end });
+    // Calculate UTC timestamp for the start of the local time slot
+    // mins is local minutes from midnight.
+    // Date.UTC(y,m-1,d, localHour, localMinute,0) gives UTC timestamp for that local time if it were UTC.
+    // Adding TZ_OFFSET_MS converts this local time representation to the actual UTC timestamp.
+    // e.g., for 10:00 local (UTC-3), this calculates Date.UTC(y,m-1,d,10,0,0) and adds 3 hours.
+    const slotStartUtc = Date.UTC(y, m - 1, d, Math.floor(mins / 60), mins % 60, 0) + TZ_OFFSET_MS;
+    const slotEndUtc = slotStartUtc + slotDurationMs; // End of the 15-minute slot in UTC
+    intervals.push({ start: slotStartUtc, end: slotEndUtc });
   }
   // Fetch seats_total
   const { rows: restRows } = await db.query('SELECT seats_total FROM restaurants WHERE id=$1', [restaurant_id]);
@@ -52,15 +62,18 @@ export const getAvailability = async (req: Request, res: Response) => {
     [restaurant_id, dateStart, dateEnd]
   );
   // Compute availability
-  const availability = intervals.map(({ start, end }) => {
+  const availability = intervals.map(({ start: slotStartUtc, end: slotEndUtc }) => {
     const usedTables = resRows.reduce((sum: number, r:any) => {
-        const rStartMs = new Date(r.reservation_at).getTime();
-        const rEndMs   = rStartMs + 90 * 60_000;
-        return rStartMs < end && rEndMs > start
-          ? sum + Math.ceil(r.guests / 2)
-          : sum;
+        const rStartUtc = new Date(r.reservation_at).getTime();
+        const rEndUtc   = rStartUtc + 90 * 60_000; // Reservation lasts 90 minutes
+        // Check for overlap: reservation [rStartUtc, rEndUtc) vs slot [slotStartUtc, slotEndUtc)
+        // A slot is occupied if the reservation period overlaps with the slot period.
+        if (rStartUtc < slotEndUtc && rEndUtc > slotStartUtc) {
+          return sum + Math.ceil(r.guests / 2);
+        }
+        return sum;
     }, 0);
-    return { start, available_tables: tables_total - usedTables };
+    return { start: slotStartUtc, available_tables: tables_total - usedTables };
   });
   res.json(availability);
 };

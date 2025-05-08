@@ -18,3 +18,21 @@ export const sendMail = async (to: string, subject: string, text: string) => {
     text,
   });
 };
+
+export const sendReservationConfirmationEmail = async (email: string, restaurantName: string, guests: number, date: number) => {
+  const formattedDate = new Date(date).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Montevideo' });
+  await sendMail(
+    email,
+    'Confirmación de reserva',
+    `Tu reserva en ${restaurantName} para ${guests} personas el ${formattedDate}hs ha sido confirmada.`
+  );
+};
+
+export const sendReservationCancellationEmail = async (email: string, restaurantName: string, guests: number, date: number) => {
+  const formattedDate = new Date(date).toLocaleString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Montevideo' });
+  await sendMail(
+    email,
+    'Cancelación de reserva',
+    `Tu reserva en ${restaurantName} para ${guests} personas el ${formattedDate}hs ha sido cancelada.`
+  );
+};

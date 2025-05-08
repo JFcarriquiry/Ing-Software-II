@@ -27,7 +27,7 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
   availability,
   selectedInterval,
   setSelectedInterval,
-  date,
+  date, // date is 'YYYY-MM-DD' string
   setDate,
   guests,
   setGuests,
@@ -39,10 +39,26 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
 
   const handleDateChange = (newDate: Date | null) => {
     if (newDate) {
-      const formatted = newDate.toISOString().split('T')[0];
-      setDate(formatted);
+      // newDate from DatePicker is a local Date object
+      const year = newDate.getFullYear();
+      // JavaScript months are 0-indexed, so add 1 for 1-indexed month string
+      const month = (newDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = newDate.getDate().toString().padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      setDate(formattedDate);
     }
   };
+
+  // Create a local Date object for the DatePicker value
+  // Memoize the calculation of dateForPickerValue to avoid re-creating Date objects unnecessarily
+  const dateForPickerValue = React.useMemo(() => {
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [yearNum, monthNum, dayNum] = date.split('-').map(Number);
+      // monthNum is 1-indexed from the string, convert to 0-indexed for Date constructor
+      return new Date(yearNum, monthNum - 1, dayNum);
+    }
+    return null; // DatePicker can handle null if the date string is not valid or empty
+  }, [date]);
 
   return (
     <div className={styles.reserveCard}>
@@ -57,7 +73,7 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
       <label>
         Fecha:
           <DatePicker
-            value={new Date(date)}
+            value={dateForPickerValue} // Use the local Date object
             onChange={handleDateChange}
             slotProps={{
               textField: {

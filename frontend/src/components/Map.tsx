@@ -66,8 +66,26 @@ export default function Map({ user }: MapProps) {
           `/api/restaurants/${selected.id}/availability?date=${date}`,
           { withCredentials: true }
         )
-        .then((res) => setAvailability(res.data))
-        .catch(console.error);
+        .then((res) => {
+          setAvailability(res.data);
+          // If availability data is successfully fetched and not empty,
+          // set the selectedInterval to the first available slot.
+          if (res.data && res.data.length > 0) {
+            setSelectedInterval(res.data[0].start.toString());
+          } else {
+            // If no availability, clear the selected interval
+            setSelectedInterval('');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          setAvailability([]); // Clear availability on error
+          setSelectedInterval(''); // Clear selected interval on error
+        });
+    } else {
+      // If no selected restaurant or date, clear availability and interval
+      setAvailability([]);
+      setSelectedInterval('');
     }
   }, [selected, date]);
 

@@ -53,13 +53,23 @@ const ReservationsList: React.FC<Props> = ({ user }) => {
   if (loading) return <p>Cargando reservas...</p>;
   if (reservations.length === 0) return <p>No tienes reservas.</p>;
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
   return (
     <div style={{ marginTop: 20 }}>
       <h2>Mis Reservas</h2>
       <ul>
         {reservations.map((r) => (
           <li key={r.id} style={{ marginBottom: 10 }}>
-            {r.restaurant_name} - {new Date(r.reservation_at).toLocaleString()} - {r.requested_guests} personas
+            {r.restaurant_name} - {formatDate(r.reservation_at)} - {r.requested_guests} personas
             <button onClick={() => handleCancel(r.id)} style={{ marginLeft: '10px' }}>
               Cancelar
             </button>
