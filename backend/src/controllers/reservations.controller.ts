@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { io } from '../sockets/occupancySocket';
-import { sendMail } from '../utils/mailer';
+import { sendReservationConfirmationEmail, sendReservationCancellationEmail } from '../utils/mailer'; // Updated import
 
 export const createReservation = async (req: Request, res: Response) => {
   const user = req.user as { id: number; email: string } | undefined;
@@ -58,10 +58,12 @@ export const createReservation = async (req: Request, res: Response) => {
     );
     // notification email
     try {
-      await sendMail(
+      // Use the new function for sending confirmation email
+      await sendReservationConfirmationEmail(
         user.email,
-        'Reserva Confirmada',
-        `Tu reserva en ${restaurantName} para ${assignedGuests} personas el ${reservation_at} ha sido confirmada.`
+        restaurantName,
+        requestedGuests, // Changed from assignedGuests to requestedGuests
+        reservation_at
       );
     } catch (mailErr) {
       console.error('Mail error', mailErr);
@@ -106,21 +108,23 @@ export const deleteReservation = async (req: Request, res: Response) => {
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      'SELECT r.restaurant_id, r.guests, r.reservation_at, rest.name AS restaurant_name FROM reservations r JOIN restaurants rest ON rest.id = r.restaurant_id WHERE r.id = $1 AND r.user_id = $2 FOR UPDATE',
+      'SELECT r.restaurant_id, r.requested_guests, r.reservation_at, rest.name AS restaurant_name FROM reservations r JOIN restaurants rest ON rest.id = r.restaurant_id WHERE r.id = $1 AND r.user_id = $2 FOR UPDATE',
       [id, user.id]
     );
     if (!rows.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Reservation not found' });
     }
-    const { restaurant_id, guests, reservation_at, restaurant_name } = rows[0];
+    const { restaurant_id, requested_guests, reservation_at, restaurant_name } = rows[0]; // Changed guests to requested_guests
     await client.query('DELETE FROM reservations WHERE id = $1', [id]);
     await client.query('COMMIT');
     try {
-      await sendMail(
+      // Use the new function for sending cancellation email
+      await sendReservationCancellationEmail(
         user.email,
-        'Reserva Cancelada',
-        `Tu reserva en ${restaurant_name} para ${guests} personas el ${reservation_at} ha sido cancelada.`
+        restaurant_name,
+        requested_guests, // Changed guests to requested_guests
+        new Date(reservation_at).getTime()
       );
     } catch (mailErr) {
       console.error('Mail error', mailErr);
