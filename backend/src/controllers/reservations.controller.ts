@@ -10,6 +10,10 @@ export const createReservation = async (req: Request, res: Response) => {
   const { restaurant_id, reservation_at, guests } = req.body;
   // start time sent as epoch ms from client
   const start = new Date(reservation_at);
+  // Validar que la fecha no sea en el pasado
+  if (start < new Date()) {
+    return res.status(400).json({ error: 'No se puede hacer una reserva en el pasado.' });
+  }
   // round to even number of seats
   const requestedGuests = Number(guests);
   const assignedGuests = requestedGuests % 2 ? requestedGuests + 1 : requestedGuests;
