@@ -22,7 +22,7 @@ const MapGrid: React.FC<MapGridProps> = ({ user }) => {
         gap: 4,
         p: { xs: 2, md: 4 },
         height: '100vh',
-        width: '100',
+        width: '100%',
         overflow: 'hidden', // para evitar scrolls innecesarios
 
 

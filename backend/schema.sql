@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     password        VARCHAR(255),
     name            VARCHAR(120),
     role            VARCHAR(20) DEFAULT 'customer',
+    restaurant_id   INT REFERENCES restaurants(id),
     created_at      TIMESTAMP DEFAULT NOW(),
     CONSTRAINT auth_method CHECK (
         (google_id IS NOT NULL AND password IS NULL) OR

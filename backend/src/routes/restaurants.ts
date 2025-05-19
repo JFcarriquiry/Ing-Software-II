@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import { ensureAuthenticated } from '../utils/auth';
-import { getAll, getById, getAvailability, getRestaurantReservations } from '../controllers/restaurants.controller';
+import { getAll, getById, getAvailability, getRestaurantReservations, confirmPresence } from '../controllers/restaurants.controller';
 
 const router = Router();
+
+// Public routes
 router.get('/', getAll);
+
+// Protected routes for restaurant management
+router.get('/reservations', ensureAuthenticated, getRestaurantReservations);
+router.patch('/reservations/:id/confirm-presence', ensureAuthenticated, confirmPresence);
+
+// Public routes for restaurant details
 router.get('/:id', getById);
-// Disponibilidad por intervalos de 15 minutos
 router.get('/:id/availability', getAvailability);
-// Reservas del restaurante (para confirmación)
-router.get('/:id/reservations', ensureAuthenticated, getRestaurantReservations);
 
 export default router;

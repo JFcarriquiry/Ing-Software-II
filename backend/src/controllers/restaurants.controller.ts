@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
+import { io } from '../sockets/occupancySocket';
 
 export const getAll = async (_: Request, res: Response) => {
   const { rows } = await db.query(
@@ -30,7 +31,7 @@ export const getAvailability = async (req: Request, res: Response) => {
 
   const TZ_OFFSET_MS = 3 * 60 * 60 * 1000; // Uruguay is UTC-3, so UTC = local + 3h. This offset is added to local time components to get UTC.
 
-  // ---- genera intervalos 10:00 → 23:30 (cada 15’)
+  // ---- genera intervalos 10:00 → 23:30 (cada 15'
   const openMin = 10 * 60; // Local 10:00 AM in minutes from midnight
   const lastResMin = 23 * 60 + 30; // Local 11:30 PM in minutes from midnight
   const intervals: { start: number; end: number }[] = [];
@@ -80,11 +81,72 @@ export const getAvailability = async (req: Request, res: Response) => {
 
 // Obtiene todas las reservas de un restaurante (para confirmación)
 export const getRestaurantReservations = async (req: Request, res: Response) => {
-  const restaurant_id = Number(req.params.id);
-  const { rows } = await db.query(
-    `SELECT id, user_id, reservation_at, requested_guests, guests, status, presence_confirmed
-     FROM reservations WHERE restaurant_id=$1 ORDER BY reservation_at`,
-    [restaurant_id]
-  );
-  res.json(rows);
+  const restaurantSession = req.session.restaurant;
+  if (!restaurantSession || !restaurantSession.restaurant_id) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT r.*, u.name as user_name, u.email as user_email
+       FROM reservations r
+       JOIN users u ON r.user_id = u.id
+       WHERE r.restaurant_id = $1
+       ORDER BY r.reservation_at DESC`,
+      [restaurantSession.restaurant_id]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching restaurant reservations:', error);
+    res.status(500).json({ error: 'Error al obtener las reservas' });
+  }
+};
+
+export const confirmPresence = async (req: Request, res: Response) => {
+  const restaurantSession = req.session.restaurant;
+  if (!restaurantSession || !restaurantSession.restaurant_id) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const reservationId = Number(req.params.id);
+  const { present } = req.body; // esperamos un boolean: true para asistió, false para no asistió
+
+  if (typeof present !== 'boolean') {
+    return res.status(400).json({ error: 'El cuerpo de la solicitud debe incluir un campo "present" booleano.' });
+  }
+
+  try {
+    // Verify the reservation belongs to this restaurant
+    const { rows } = await db.query(
+      'SELECT * FROM reservations WHERE id = $1 AND restaurant_id = $2',
+      [reservationId, restaurantSession.restaurant_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+
+    const newStatus = present ? 'confirmed' : 'no-show';
+    // Update the reservation
+    await db.query(
+      `UPDATE reservations 
+       SET presence_confirmed = $1, 
+           presence_confirmed_at = CASE WHEN $1 = true THEN NOW() ELSE NULL END,
+           status = $2
+       WHERE id = $3`,
+      [present, newStatus, reservationId]
+    );
+
+    // Emit socket event for real-time updates
+    io.to(`restaurant_${restaurantSession.restaurant_id}`).emit('reservation_updated', {
+      reservation_id: reservationId,
+      presence_confirmed: present,
+      status: newStatus
+    });
+
+    res.json({ message: present ? 'Presencia confirmada' : 'Ausencia confirmada' });
+  } catch (error) {
+    console.error('Error confirming presence/absence:', error);
+    res.status(500).json({ error: 'Error al confirmar presencia/ausencia' });
+  }
 };

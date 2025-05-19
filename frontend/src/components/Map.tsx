@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { GoogleMap, MarkerF, useLoadScript } from '@react-google-maps/api';
 import axios from 'axios';
-import io from 'socket.io-client';
+// import io from 'socket.io-client'; // Ya no se importa io directamente aquí
 import { User } from '../hooks/useAuth';
 import ReserveCard from './ReserveCard';
+import { useSocket } from '../hooks/useSocket'; // Usar el hook centralizado
 
 export interface Restaurant {
   id: number;
@@ -36,9 +37,7 @@ export default function Map({ user }: MapProps) {
   const [availability, setAvailability] = useState<{ start: number; available_tables: number }[]>([]);
   const [selectedInterval, setSelectedInterval] = useState('');
   const [message, setMessage] = useState('');
-  const [socket] = useState(() =>
-    io('http://localhost:3001', { transports: ['websocket'] })
-  );
+  const socket = useSocket(); // Usar el hook
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: -34.9011, lng: -56.1645 });
 
   useEffect(() => {
@@ -47,18 +46,29 @@ export default function Map({ user }: MapProps) {
     }
   }, [user]);
 
+  // Efecto para escuchar 'occupancy_update' si es necesario para el mapa general
+  // Este es un ejemplo simple, podrías querer una lógica más sofisticada
   useEffect(() => {
-    restaurants.forEach((r) => {
-      socket.emit('join_restaurant_room', r.id);
-    });
-    socket.on('occupancy_update', ({ restaurant_id }) => {
-      axios.get('/api/restaurants').then((res) => setRestaurants(res.data));
-    });
-    return () => {
-      socket.off('occupancy_update');
-      socket.disconnect();
+    console.log('Map: Setting up occupancy_update listener');
+    const handleOccupancyUpdate = ({ restaurant_id }: { restaurant_id: number }) => {
+      console.log(`Map: Occupancy update received for restaurant ${restaurant_id}`);
+      // Opcional: Podrías querer recargar solo el restaurante afectado o todos
+      // Por ahora, recargamos todos para simplicidad, pero esto puede no ser ideal para el rendimiento
+      // axios.get('/api/restaurants').then((res) => setRestaurants(res.data));
+      // O actualizar solo el restaurante afectado si tienes su info
+      setRestaurants(prev => prev.map(r => r.id === restaurant_id ? { ...r, /* algún campo de ocupación si lo tienes */ } : r));
+      // Considera si este evento es realmente necesario para el mapa o si el dashboard es el único interesado.
+      // Si solo el dashboard usa este evento, puedes eliminar este listener del Map.
     };
-  }, [restaurants]);
+
+    socket.on('occupancy_update', handleOccupancyUpdate);
+
+    return () => {
+      console.log('Map: Cleaning up occupancy_update listener');
+      socket.off('occupancy_update', handleOccupancyUpdate);
+      // No desconectamos el socket aquí, ya que es una instancia compartida gestionada por useSocket
+    };
+  }, [socket]); // Depende solo de la instancia del socket
 
   useEffect(() => {
     if (selected && date) {
@@ -114,10 +124,12 @@ export default function Map({ user }: MapProps) {
         },
         { withCredentials: true }
       );
-      const { requested_guests } = res.data;
-      window.alert(`Reserva de ${requested_guests} personas confirmada`);
+      const newReservation = res.data.reservation;
+      const displayGuests = newReservation?.requested_guests || guests;
+
+      window.alert(`Reserva de ${displayGuests} personas confirmada`);
       window.dispatchEvent(new Event('reservation-made'));
-      setMessage(`Reserva de ${requested_guests} personas confirmada`);
+      setMessage(`Reserva de ${displayGuests} personas confirmada`);
       setSelected(null);
     } catch (err: any) {
       setMessage(err.response?.data?.error || 'Error al reservar');
