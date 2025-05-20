@@ -151,6 +151,15 @@ export default function Map({ user }: MapProps) {
             position={{ lat: Number(r.latitude), lng: Number(r.longitude) }}
             title={`${r.name} (${r.seats_total} asientos totales)`}
             onClick={() => handleMarkerClick(r)}
+            icon={{
+              fillColor: '#ff2d00',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeOpacity: 2,
+              strokeWeight: 2,
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 6,
+            }}
           />
         ))}
       </GoogleMap>
