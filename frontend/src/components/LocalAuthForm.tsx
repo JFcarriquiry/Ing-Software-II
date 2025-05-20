@@ -104,7 +104,7 @@ const LocalAuthForm: React.FC = () => {
     password: false,
     name: false,
   });
-  const { user, setUser } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -144,27 +144,27 @@ const LocalAuthForm: React.FC = () => {
     }
 
     try {
-      const endpoint = tabValue === 0 ? '/api/auth/login' : '/api/auth/register';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-        credentials: 'include',
-      });
+      if (tabValue === 0) {
+        // Login
+        await login(formData.email, formData.password);
+        window.location.href = '/map';
+      } else {
+        // Register
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+          credentials: 'include',
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en la autenticación');
-      }
+        if (!response.ok) {
+          throw new Error(data.error || 'Error en el registro');
+        }
 
-      // After successful login/register, get the user data
-      const userResponse = await axios.get('/api/auth/me', { withCredentials: true });
-      setUser(userResponse.data);
-
-      if (tabValue === 1) {
         // Si es registro, mostrar mensaje y cambiar a pestaña de login
         setSuccessMessage('Se ha registrado satisfactoriamente');
         setTabValue(0);
@@ -174,9 +174,6 @@ const LocalAuthForm: React.FC = () => {
           password: '',
           name: '',
         });
-      } else {
-        // Si es login, redirigir al mapa
-        window.location.href = '/map';
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error en la autenticación');

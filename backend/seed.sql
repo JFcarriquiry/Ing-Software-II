@@ -122,3 +122,25 @@ VALUES
 ('Puesta del Sol', 'Restaurante con especialidad en pescados y mariscos', ' 093 389 549', 'info@puestadelsol.com.uy', 'Rambla Wilson 426, Parque Rodó', -34.92024435200398, -56.17211543053861, 90),
 ('Sucré Salé', 'Restaurante de cocina francesa', ' 2401 4284', 'contacto@sucre-sale.com.uy', 'Bulevar Artigas 1271, Parque Rodó', -34.905089766132754, -56.16409065743549, 40),
 ('La Guinda', 'Restaurante de cocina de autor y coctelería', ' 099 123 456', 'contacto@laguinda.com.uy', 'Maldonado 1983, Parque Rodó', -34.90820687405976, -56.172306900207744, 45);
+
+-- Add example restaurant users
+INSERT INTO users (email, password, name, role, restaurant_id) VALUES
+('restaurant1@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Alquimista', 'restaurant', 1),
+('restaurant2@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Café Misterio', 'restaurant', 2),
+('restaurant3@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Charo', 'restaurant', 3);
+
+-- Add example customer users
+INSERT INTO users (email, password, name, role) VALUES
+('cliente1@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Cliente Uno', 'customer'),
+('cliente2@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Cliente Dos', 'customer'),
+('cliente3@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Cliente Tres', 'customer'),
+('cliente4@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Cliente Cuatro', 'customer');
+
+-- Add example reservations
+-- Assuming restaurant users are IDs 1, 2, 3
+-- Assuming new customer users will get IDs 4, 5, 6, 7
+INSERT INTO reservations (user_id, restaurant_id, reservation_at, requested_guests, guests, status) VALUES
+(4, 1, NOW() + INTERVAL '1 day', 4, 4, 'pending'),       -- Cliente Uno en Alquimista
+(5, 1, NOW() + INTERVAL '2 days', 2, 2, 'pending'),       -- Cliente Dos en Alquimista
+(6, 2, NOW() + INTERVAL '1 day', 6, 6, 'pending'),       -- Cliente Tres en Café Misterio
+(7, 3, NOW() + INTERVAL '3 days', 4, 4, 'pending');      -- Cliente Cuatro en Charo

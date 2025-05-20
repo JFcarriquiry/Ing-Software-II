@@ -10,9 +10,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { es } from 'date-fns/locale/es';
 import MapGrid from './components/mapGrid';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import RestaurantLogin from './components/RestaurantLogin';
+import RestaurantDashboard from './components/RestaurantDashboard';
 
 const App: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, restaurant, loading } = useAuth();
 
   if (loading) {
     return <p>Cargando usuario...</p>;
@@ -37,6 +39,26 @@ const App: React.FC = () => {
                   </>
                 ) : (
                   <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/restaurant/login"
+              element={
+                restaurant ? (
+                  <Navigate to="/restaurant/dashboard" replace />
+                ) : (
+                  <RestaurantLogin />
+                )
+              }
+            />
+            <Route
+              path="/restaurant/dashboard"
+              element={
+                restaurant ? (
+                  <RestaurantDashboard />
+                ) : (
+                  <Navigate to="/restaurant/login" replace />
                 )
               }
             />

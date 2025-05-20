@@ -1,6 +1,16 @@
-# Restaurant Reservations – Full‑Stack Project (Uruguay)
+# Restaurant Reservations – Full‑Stack Project (Uruguay)
 
-> **Stack**: Node.js + Express · PostgreSQL · React + Vite · Google Maps · Socket.io · Docker Compose
+> **Stack**: Node.js + Express · PostgreSQL · React + Vite · Google Maps · Socket.io · Docker Compose
+
+## Características Principales
+
+- **Visualización de Restaurantes**: Mapa interactivo con Google Maps para ver y seleccionar restaurantes
+- **Sistema de Reservas**: Crear reservaciones eligiendo fecha, hora y número de personas
+- **Actualizaciones en Tiempo Real**: Las reservas se muestran instantáneamente en el panel de control del restaurante mediante WebSockets
+- **Autenticación Dual**: Sistema de acceso para clientes (con Google OAuth) y para restaurantes (con credenciales)
+- **Panel de Control para Restaurantes**: Gestión de reservas con notificaciones en tiempo real
+- **Interfaz Responsiva**: Experiencia de usuario optimizada para dispositivos móviles y escritorio
+- **Notificaciones por Email**: Confirmaciones automáticas de reserva
 
 ## Instrucciones completas para ejecutar el proyecto localmente
 
@@ -26,7 +36,7 @@ Los archivos `.env` contienen variables sensibles y NO están incluidos en el re
 Crea el archivo `backend/.env` con el siguiente contenido (reemplaza los valores según corresponda):
 
 ```
-DATABASE_URL=postgres://postgres:postgres@db:5432/reservations
+DATABASE_URL=postgres://postgres:postgres@db:5432/restaurant_reservations
 JWT_SECRET=tu_secreto_jwt
 GOOGLE_CLIENT_ID=tu_client_id_google
 GOOGLE_CLIENT_SECRET=tu_client_secret_google
@@ -88,7 +98,21 @@ Esto creará y levantará todos los servicios:
 - API + WebSocket: http://localhost:3001
 - pgAdmin: http://localhost:5050
 
-### 7. Ejecutar Pruebas
+### 7. Flujo de la aplicación
+
+#### Para Clientes (Usuarios):
+1. Inicia sesión con tu cuenta de Google
+2. Explora restaurantes en el mapa
+3. Selecciona un restaurante y realiza una reserva
+4. Recibe confirmación por email de tu reserva
+
+#### Para Restaurantes:
+1. Inicia sesión en `/restaurant/login` con tus credenciales de restaurante
+2. Accede al panel de administración
+3. Visualiza y gestiona las reservas en tiempo real
+4. Confirma la asistencia de los clientes
+
+### 8. Ejecutar Pruebas
 
 Para ejecutar las pruebas automatizadas del backend (asumiendo que tienes un script `test` en `backend/package.json`):
 
@@ -98,12 +122,12 @@ npm install # Si aún no lo has hecho y no usas Docker para pruebas
 npm test
 ```
 
-### 8. Notas sobre archivos ignorados (`.gitignore`)
+### 9. Notas sobre archivos ignorados (`.gitignore`)
 - Los archivos `.env`, `node_modules/`, `logs/`, y carpetas de configuración/editor no estarán presentes al clonar el repo.
 - Debes crear los `.env` manualmente (ver paso 3).
 - Las carpetas `node_modules/` se generan automáticamente al correr `npm install` (o al usar Docker).
 
-### 9. Estructura de carpetas
+### 10. Estructura de carpetas
 ```
 backend/                → Contiene la lógica del servidor Node.js + Express.
 ├── src/
@@ -122,11 +146,12 @@ backend/                → Contiene la lógica del servidor Node.js + Express.
 └── test/               → Contiene los archivos de pruebas (ej. restaurants.test.ts).
 
 frontend/               → Contiene la aplicación cliente React + Vite.
-├
+├── public/             → Archivos estáticos (imágenes, sonidos, etc.)  
 ├── src/
-│   ├── assets/         → (Si mueves `img/` aquí, sería más convencional para Vite/React)
+│   ├── assets/         → Recursos estáticos como imágenes o iconos
 │   ├── components/     → Componentes reutilizables de React (ej. LoginButton.tsx, Map.tsx).
 │   ├── hooks/          → Hooks personalizados de React (ej. useAuth.ts, useSocket.ts).
+│   ├── styles/         → Archivos de estilo CSS/SCSS
 │   ├── App.tsx         → Componente raíz de la aplicación React.
 │   ├── main.tsx        → Punto de entrada de la aplicación React, donde se renderiza App.tsx.
 │   └── theme/          → Configuración del tema de la interfaz (ej. temaPrincipal.ts).
@@ -155,8 +180,25 @@ cd restaurant-reservations
 docker-compose up --build
 ```
 
-## Roadmap planificado
-1. **Sprint 1** – Mapa con markers desde DB ✔️  
-2. **Sprint 2** – Crear reservas, actualizaciones en vivo via socket.io  
-3. **Sprint 3** – Panel admin p/ restaurantes, ratings y fotos  
-4. **Sprint 4** – Notificaciones e‑mail / push, refinamiento UI, deploy
+## Funcionalidades Implementadas
+
+1. **Hito 1** – Mapa con markers desde DB ✅
+   - Integración con Google Maps API
+   - Visualización de restaurantes en el mapa
+   - Información detallada al seleccionar un restaurante
+   - Notificaciones por email para confirmación de reservas
+   - Login de usuarios vía Google OAuth
+   
+
+2. **Hito 2** – Crear reservas y Sistema de Notificaciones ✅  
+   - Sistema de reservas para clientes
+   - Panel de administración para restaurantes
+   - Actualizaciones en tiempo real vía WebSockets
+   - Autenticación y Gestión de Usuarios 
+   - Login de restaurantes con credenciales
+   - Permisos diferenciados según el rol
+   - Estado visual de la conexión WebSocket
+
+4. **Hito 3** – NEXT
+
+

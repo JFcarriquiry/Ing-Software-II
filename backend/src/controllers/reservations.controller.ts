@@ -4,8 +4,13 @@ import { io } from '../sockets/occupancySocket';
 import { sendReservationConfirmationEmail, sendReservationCancellationEmail } from '../utils/mailer'; // Updated import
 
 export const createReservation = async (req: Request, res: Response) => {
-  const user = req.user as { id: number; email: string } | undefined;
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const userSession = req.session.user;
+  if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
+
+  // Ensure only customers can create reservations
+  if (userSession.role !== 'user') {
+    return res.status(403).json({ error: 'Forbidden: Only customers can create reservations.' });
+  }
 
   const { restaurant_id, reservation_at, guests } = req.body;
   // start time sent as epoch ms from client
@@ -55,16 +60,28 @@ export const createReservation = async (req: Request, res: Response) => {
     if (tablesTotal - usedTables < neededTables) {
       return res.status(400).json({ error: 'Not enough tables in selected interval' });
     }
-    // insert reservation
-    await client.query(
-      'INSERT INTO reservations (user_id, restaurant_id, reservation_at, requested_guests, guests) VALUES ($1,$2,$3,$4,$5)',
-      [user.id, restaurant_id, start, requestedGuests, assignedGuests]
+    // insert reservation and return all its data including user info
+    const reservationInsertResult = await client.query(
+      `INSERT INTO reservations (user_id, restaurant_id, reservation_at, requested_guests, guests, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, user_id, restaurant_id, reservation_at, requested_guests, guests, status, presence_confirmed, presence_confirmed_at`,
+      [userSession.id, restaurant_id, start, requestedGuests, assignedGuests, 'pending'] // Added 'pending' status
     );
+
+    const newReservationData = reservationInsertResult.rows[0];
+
+    // Construct the reservation object to be sent via socket, including user details
+    const reservationForSocket: any = {
+      ...newReservationData,
+      user_name: userSession.name, // Name from the session of the user who made the reservation
+      user_email: userSession.email // Email from the session
+    };
+
     // notification email
     try {
       // Use the new function for sending confirmation email
       await sendReservationConfirmationEmail(
-        user.email,
+        userSession.email,
         restaurantName,
         requestedGuests, // Changed from assignedGuests to requestedGuests
         reservation_at
@@ -73,10 +90,16 @@ export const createReservation = async (req: Request, res: Response) => {
       console.error('Mail error', mailErr);
     }
 
-    // Emit socket event
+    // Emit socket event for new reservation
+    io.to(`restaurant_${restaurant_id}`).emit('new_reservation', { reservation: reservationForSocket });
+
+    // Also emit occupancy_update if you still need it for other purposes
     io.to(`restaurant_${restaurant_id}`).emit('occupancy_update', { restaurant_id });
 
-    res.status(201).json({ message: 'Reservation confirmed', requested_guests: requestedGuests, guests: assignedGuests, reservation_at });
+    res.status(201).json({ 
+      message: 'Reservation confirmed',
+      reservation: reservationForSocket // Send back the full reservation object
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -86,8 +109,8 @@ export const createReservation = async (req: Request, res: Response) => {
 };
 
 export const getReservations = async (req: Request, res: Response) => {
-  const user = req.user as { id: number } | undefined;
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const userSession = req.session.user;
+  if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const { rows } = await db.query(
       `SELECT r.id, r.restaurant_id, rest.name AS restaurant_name,
@@ -95,7 +118,7 @@ export const getReservations = async (req: Request, res: Response) => {
        FROM reservations r
        JOIN restaurants rest ON rest.id = r.restaurant_id
        WHERE r.user_id = $1`,
-      [user.id]
+      [userSession.id]
     );
     const sorted = rows.sort((a, b) => new Date(a.reservation_at).getTime() - new Date(b.reservation_at).getTime());
     res.json(sorted);
@@ -106,15 +129,15 @@ export const getReservations = async (req: Request, res: Response) => {
 };
 
 export const deleteReservation = async (req: Request, res: Response) => {
-  const user = req.user as { id: number; email: string } | undefined;
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const userSession = req.session.user;
+  if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
   const id = Number(req.params.id);
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
       'SELECT r.restaurant_id, r.requested_guests, r.reservation_at, rest.name AS restaurant_name FROM reservations r JOIN restaurants rest ON rest.id = r.restaurant_id WHERE r.id = $1 AND r.user_id = $2 FOR UPDATE',
-      [id, user.id]
+      [id, userSession.id]
     );
     if (!rows.length) {
       await client.query('ROLLBACK');
@@ -126,7 +149,7 @@ export const deleteReservation = async (req: Request, res: Response) => {
     try {
       // Use the new function for sending cancellation email
       await sendReservationCancellationEmail(
-        user.email,
+        userSession.email,
         restaurant_name,
         requested_guests, // Changed guests to requested_guests
         new Date(reservation_at).getTime()
@@ -146,15 +169,26 @@ export const deleteReservation = async (req: Request, res: Response) => {
 };
 
 // Confirm presence endpoint for restaurants
+// This confirmPresence is actually for the restaurant dashboard, not client reservations.
+// It was mistakenly in reservations.controller.ts, it should be in restaurants.controller.ts
+// For now, let's assume it stays here and fix its auth logic if it were to be used by a client (which it shouldn't)
+// However, the correct confirmPresence is in restaurants.controller.ts and uses req.session.restaurant
 export const confirmPresence = async (req: Request, res: Response) => {
-  const user = req.user as any;
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const userSession = req.session.user; // If a client could confirm presence, this would be the check
+  // const restaurantSession = req.session.restaurant; // If this was for restaurant
+  
+  // THIS IS LIKELY DEAD CODE OR MISPLACED as confirmPresence is handled by restaurants.controller.ts for restaurant users
+  if (!userSession) { // Example if a client were to confirm, but this endpoint is likely not used by clients
+     return res.status(401).json({ error: 'Unauthorized - Client cannot confirm presence this way' });
+  }
+
   const id = Number(req.params.id);
+  // ... (rest of the logic, which is probably not hit if clients don't use this specific endpoint)
   const { rows } = await db.query(
-    'SELECT restaurant_id FROM reservations WHERE id=$1',
-    [id]
+    'SELECT restaurant_id FROM reservations WHERE id=$1 AND user_id = $2', // Added user_id check for client context
+    [id, userSession.id]
   );
-  if (!rows.length) return res.status(404).json({ error: 'Reservation not found' });
+  if (!rows.length) return res.status(404).json({ error: 'Reservation not found or does not belong to user' });
   const restaurant_id = rows[0].restaurant_id;
   await db.query(
     `UPDATE reservations

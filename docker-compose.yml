@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:16
@@ -6,13 +5,20 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: reservations
+      POSTGRES_DB: restaurant_reservations
     ports:
       - "5432:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - ./backend/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d restaurant_reservations"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
 
   api:
     image: node:20-alpine
@@ -22,11 +28,20 @@ services:
       - /app/node_modules
     env_file:
       - ./backend/.env
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: restaurant_reservations
+      DB_PORT: "5432"
     command: sh -c "npm install && npm run dev"
     ports:
       - "3001:3001"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
 
   frontend:
     image: node:20-alpine
@@ -41,6 +56,8 @@ services:
       - "5173:5173"
     depends_on:
       - api
+    networks:
+      - app-network
 
   pgadmin:
     image: dpage/pgadmin4
@@ -52,6 +69,12 @@ services:
       - "5050:80"
     depends_on:
       - db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   dbdata:
