@@ -87,6 +87,7 @@ const ReserveCard: React.FC<ReserveCardProps> = ({
           <DatePicker
             value={dateForPickerValue} // Use the local Date object
             onChange={handleDateChange}
+            minDate={new Date()}
             slotProps={{
               textField: {
                 fullWidth: true,
