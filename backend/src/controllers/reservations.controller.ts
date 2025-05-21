@@ -121,7 +121,7 @@ export const getReservations = async (req: Request, res: Response) => {
       [userSession.id]
     );
     const sorted = rows.sort((a, b) => new Date(a.reservation_at).getTime() - new Date(b.reservation_at).getTime());
-    res.json(sorted);
+    res.status(200).json(sorted); // Explicitly set status
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -158,7 +158,7 @@ export const deleteReservation = async (req: Request, res: Response) => {
       console.error('Mail error', mailErr);
     }
     io.to(`restaurant_${restaurant_id}`).emit('occupancy_update', { restaurant_id });
-    res.json({ message: 'Reservation cancelled' });
+    res.status(200).json({ message: 'Reservation cancelled' }); // Explicitly set status
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);

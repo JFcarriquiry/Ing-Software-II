@@ -26,12 +26,16 @@
     "ts-jest": "^29.3.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.27.1",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-typescript": "^7.27.1",
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.17.4",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20.11.19",
     "@types/nodemailer": "^6.4.17",
+    "babel-jest": "^29.7.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.2"
   }
