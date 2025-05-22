@@ -103,6 +103,36 @@ describe('Reservations Controller', () => {
       status: 'pending',
     };
 
+      it('should return 400 if requestedGuests is greater than seats_total', async () => {
+      mockRequest.session!.user = mockUserSession;
+      mockRequest.body = {
+      restaurant_id: 1,
+      reservation_at: reservationTimeEpoch,
+      guests: 100, // > seats_total mockeado
+    };
+
+    mockDbClient.query
+      .mockResolvedValueOnce({
+        rows: [{ seats_total: 50, open_time: '10:00', close_time: '23:30' }],
+        rowCount: 1,
+      })
+      .mockResolvedValueOnce({
+        rows: [{ used_tables: 0 }],
+        rowCount: 1,
+      });
+
+    await ReservationsController.createReservation(
+      mockRequest as Request,
+      mockResponse as Response
+    );
+
+    expect(responseStatus).toBe(400);
+    expect(responseJson.error).toBe(
+      'Not enough tables in selected interval'
+    );
+    expect(mockDbClient.release).toHaveBeenCalledTimes(1);
+  });
+
     it('should create a reservation successfully', async () => {
       mockRequest.session!.user = mockUserSession;
       mockRequest.body = mockReservationPayload;
