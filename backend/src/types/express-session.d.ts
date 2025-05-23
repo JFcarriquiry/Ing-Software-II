@@ -16,4 +16,4 @@ declare module 'express-session' {
     user?: UserSession;
     restaurant?: RestaurantSession;
   }
-} 
+}
