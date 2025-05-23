@@ -47,6 +47,16 @@ router.get(
   '/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
   (req: Request, res: Response) => {
+    // Set session data for OAuth users to maintain consistency with local auth
+    if (req.user) {
+      const user = req.user as any;
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || 'user'
+      };
+    }
     // Redirect to frontend after successful login
     res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
   }

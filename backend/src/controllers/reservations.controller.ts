@@ -3,12 +3,32 @@ import { db } from '../db';
 import { io } from '../sockets/occupancySocket';
 import { sendReservationConfirmationEmail, sendReservationCancellationEmail } from '../utils/mailer'; // Updated import
 
+// Type declarations for session
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: number;
+      email: string;
+      name: string;
+      role: string;
+    };
+    restaurant?: {
+      id: number;
+      email: string;
+      name: string;
+      role: string;
+      restaurant_id: number;
+    };
+  }
+}
+
 export const createReservation = async (req: Request, res: Response) => {
-  const userSession = req.session.user;
+  // Check for session user (local auth) or OAuth user
+  const userSession = req.session.user || (req.isAuthenticated && req.isAuthenticated() ? req.user : null);
   if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
 
   // Ensure only customers can create reservations
-  if (userSession.role !== 'user') {
+  if (userSession.role !== 'user' && userSession.role !== 'customer') {
     return res.status(403).json({ error: 'Forbidden: Only customers can create reservations.' });
   }
 
@@ -109,7 +129,8 @@ export const createReservation = async (req: Request, res: Response) => {
 };
 
 export const getReservations = async (req: Request, res: Response) => {
-  const userSession = req.session.user;
+  // Check for session user (local auth) or OAuth user
+  const userSession = req.session.user || (req.isAuthenticated && req.isAuthenticated() ? req.user : null);
   if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const { rows } = await db.query(
@@ -120,7 +141,7 @@ export const getReservations = async (req: Request, res: Response) => {
        WHERE r.user_id = $1`,
       [userSession.id]
     );
-    const sorted = rows.sort((a, b) => new Date(a.reservation_at).getTime() - new Date(b.reservation_at).getTime());
+    const sorted = rows.sort((a: any, b: any) => new Date(a.reservation_at).getTime() - new Date(b.reservation_at).getTime());
     res.status(200).json(sorted); // Explicitly set status
   } catch (err) {
     console.error(err);
@@ -129,7 +150,8 @@ export const getReservations = async (req: Request, res: Response) => {
 };
 
 export const deleteReservation = async (req: Request, res: Response) => {
-  const userSession = req.session.user;
+  // Check for session user (local auth) or OAuth user
+  const userSession = req.session.user || (req.isAuthenticated && req.isAuthenticated() ? req.user : null);
   if (!userSession) return res.status(401).json({ error: 'Unauthorized' });
   const id = Number(req.params.id);
   const client = await db.connect();
