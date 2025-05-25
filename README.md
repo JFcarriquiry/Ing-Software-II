@@ -9,7 +9,6 @@
 - **Actualizaciones en Tiempo Real**: Las reservas se muestran instantáneamente en el panel de control del restaurante mediante WebSockets
 - **Autenticación Dual**: Sistema de acceso para clientes (con Google OAuth) y para restaurantes (con credenciales)
 - **Panel de Control para Restaurantes**: Gestión de reservas con notificaciones en tiempo real
-- **Interfaz Responsiva**: Experiencia de usuario optimizada para dispositivos móviles y escritorio
 - **Notificaciones por Email**: Confirmaciones automáticas de reserva
 
 ## Instrucciones completas para ejecutar el proyecto localmente
