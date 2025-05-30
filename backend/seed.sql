@@ -125,7 +125,7 @@ VALUES
 
 -- Add example restaurant users
 INSERT INTO users (email, password, name, role, restaurant_id) VALUES
-('restaurant1@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Alquimista', 'restaurant', 1),
+('restaurant1@example.com', 'restaurant123', 'Alquimista', 'restaurant', 1),
 ('restaurant2@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Café Misterio', 'restaurant', 2),
 ('restaurant3@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Charo', 'restaurant', 3);
 
@@ -144,3 +144,40 @@ INSERT INTO reservations (user_id, restaurant_id, reservation_at, requested_gues
 (5, 1, NOW() + INTERVAL '2 days', 2, 2, 'pending'),       -- Cliente Dos en Alquimista
 (6, 2, NOW() + INTERVAL '1 day', 6, 6, 'pending'),       -- Cliente Tres en Café Misterio
 (7, 3, NOW() + INTERVAL '3 days', 4, 4, 'pending');      -- Cliente Cuatro en Charo
+
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS restaurant_tags (
+    restaurant_id INT REFERENCES restaurants(id) ON DELETE CASCADE,
+    tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (restaurant_id, tag_id)
+);
+
+-- Etiquetas
+INSERT INTO tags (name) VALUES
+('Parrilla'), ('Vegano'), ('Café'), ('Italiana'), ('Mariscos'), ('Bar'), ('Brunch');
+-- 1 Parrilla
+-- 2 Vegano
+-- 3 Café
+-- 4 Italiana
+-- 5 Mariscos
+-- 6 Bar
+
+-- Relacionar restaurantes con etiquetas (ejemplo)
+INSERT INTO restaurant_tags (restaurant_id, tag_id) VALUES
+(1, 3), -- Alquimia: Café
+(1, 6), -- Alquimia: Bar
+(2, 1), -- Cafe Misterio : Cafe
+(2, 7), -- Café Misterio: Brunch
+(3, 1), -- Charo: Parrilla
+(3, 2), -- Charo: Vegano
+(4, 4), -- Casa Magnum: Italiana
+(5, 5), -- La Casa Violeta: Mariscos
+(6, 1), -- García Carrasco: Parrilla
+(7, 1), -- Tintos & Rubias Carrasco: Parrilla
+(8, 2), -- Manzanar: Vegano
+(9, 3), -- La Panera Rosa: Café
+(10, 1); -- El Puesto: Parrilla
