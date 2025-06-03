@@ -10,17 +10,13 @@ import { useSocket } from '../hooks/useSocket';
 // Material-UI imports
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
-import Chip from '@mui/material/Chip';
 import Box from '@mui/material/Box';
-import Popover from '@mui/material/Popover';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import InputAdornment from '@mui/material/InputAdornment';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import Typography from '@mui/material/Typography';
+import Autocomplete from '@mui/material/Autocomplete';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
 export interface Restaurant {
   id: number;
@@ -33,7 +29,6 @@ export interface Restaurant {
   phone?: string;
   email?: string;
   address?: string;
-  tags?: string[];
   tags?: string[];
 }
 
@@ -57,32 +52,13 @@ export default function Map({ user }: MapProps) {
   const [selectedInterval, setSelectedInterval] = useState('');
   const [message, setMessage] = useState('');
   const socket = useSocket();
-  const socket = useSocket();
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: -34.9011, lng: -56.1645 });
   
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [tagSearchText, setTagSearchText] = useState('');
-  
-  const [tagAnchorEl, setTagAnchorEl] = React.useState<HTMLInputElement | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  const handleTagPopoverOpen = (event: React.MouseEvent<HTMLInputElement>) => {
-    setTagAnchorEl(event.currentTarget);
-  };
-
-  const handleTagPopoverClose = () => {
-    setTagAnchorEl(null);
-  };
-
-  const isTagPopoverOpen = Boolean(tagAnchorEl);
-  const tagPopoverId = isTagPopoverOpen ? 'tag-popover' : undefined;
-
-  const allTags = Array.from(
+  const allCategories = Array.from(
     new Set(restaurants.flatMap(r => r.tags || []))
   ).sort();
-
-  const filteredAvailableTags = allTags.filter(tag =>
-    tag.toLowerCase().includes(tagSearchText.toLowerCase())
-  );
 
   const filteredRestaurants = restaurants.filter(r =>
     selectedCategories.length === 0 ||
@@ -184,33 +160,28 @@ export default function Map({ user }: MapProps) {
     r.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const handleTagCheckboxChange = (tag: string, checked: boolean) => {
-    if (checked) {
-      setSelectedTags((prev: string[]) => [...prev, tag]);
-    } else {
-      setSelectedTags((prev: string[]) => prev.filter((t: string) => t !== tag));
-    }
-  };
-
   return (
     <>
-      <Box sx={{ 
-        margin: '1rem 0', 
-        padding: '1rem', // Added padding
-        backgroundColor: 'white', // Added white background
-        borderRadius: '4px', // Optional: for rounded corners
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // Optional: for a slight shadow
-        display: 'flex', 
-        gap: 2, 
-        alignItems: 'center', 
-        flexWrap: 'wrap' 
+      <Box sx={{
+        // margin: '1rem 0', // Replaced   // For alignment with ReservationsList
+        marginBottom: 0,      // To be "pegado" to the map (bottom aligned with map top)
+        padding: '1rem',
+        backgroundColor: 'white',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        gap: 2,
+        alignItems: 'center',
+        flexWrap: 'wrap',     // Allow wrapping if space is tight
+        width: '50%',         // Occupy half of the parent's width
+        // width: 'fit-content' // Removed
       }}>
         <TextField
           label="Buscar restaurante"
           variant="outlined"
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
-          sx={{ minWidth: 200 }}
+          // sx={{ width: '25%', minWidth: 200 }} // Replaced
+          sx={{ flex: 1, minWidth: 200 }} // Take available space, respect minWidth
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -220,95 +191,47 @@ export default function Map({ user }: MapProps) {
           }}
         />
         
-        <Box>
-          <TextField
-            label="Filtrar por tags"
-            variant="outlined"
-            value={tagSearchText}
-            onClick={handleTagPopoverOpen}
-            onFocus={(event: React.FocusEvent<HTMLInputElement>) => {
-                setTagAnchorEl(event.currentTarget);
-            }}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => { // Ensure type for e
-              setTagSearchText(e.target.value);
-              if (!tagAnchorEl && e.target instanceof HTMLInputElement) {
-                  setTagAnchorEl(e.target);
-              }
-            }}
-            sx={{ minWidth: 200 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FilterListIcon />
-                </InputAdornment>
-              ),
-            }}
-            aria-describedby={tagPopoverId}
-          />
-          <Popover
-            id={tagPopoverId}
-            open={isTagPopoverOpen}
-            anchorEl={tagAnchorEl}
-            onClose={handleTagPopoverClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'left',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'left',
-            }}
-            PaperProps={{
-              style: {
-                maxHeight: 200,
-                width: tagAnchorEl ? tagAnchorEl.clientWidth : 200,
-              },
-            }}
-            disableEnforceFocus // Added this prop to prevent Popover from stealing focus
-          >
-            <List dense sx={{ overflowY: 'auto', maxHeight: '200px' }}>
-              {filteredAvailableTags.length > 0 ? filteredAvailableTags.map(tag => (
-                <ListItem
-                  key={tag}
-                  dense
-                  button // Using 'button' prop for ListItem
-                  onClick={() => handleTagCheckboxChange(tag, !selectedTags.includes(tag))}
-                >
-                  <ListItemIcon sx={{minWidth: 'auto', marginRight: 1}}>
-                    <Checkbox
-                      edge="start"
-                      checked={selectedTags.includes(tag)}
-                      tabIndex={-1}
-                      disableRipple
-                      size="small"
-                    />
-                  </ListItemIcon>
-                  <ListItemText primary={tag} />
-                </ListItem>
-              )) : (
-                <ListItem>
-                  <ListItemText primary={tagSearchText ? "No hay tags que coincidan" : "Escriba para buscar tags"} />
-                </ListItem>
-              )}
-            </List>
-          </Popover>
-        </Box>
-
-        {selectedTags.length > 0 && (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', marginLeft: 0 }}>
-            <Typography variant="body2" sx={{ fontWeight: 'medium', mr: 0.5 }}>Filtros:</Typography>
-            {selectedTags.map(tag => (
-              <Chip
-                key={tag}
-                label={tag}
-                onDelete={() => handleTagCheckboxChange(tag, false)}
-                color="primary"
-                variant="outlined"
-                size="small"
+        <Autocomplete
+          multiple
+          id="categories-filter-checkboxes"
+          options={allCategories}
+          value={selectedCategories}
+          disableCloseOnSelect
+          getOptionLabel={(option) => option}
+          onChange={(event, newValue) => {
+            setSelectedCategories(newValue);
+          }}
+          renderOption={(props, option, { selected }) => (
+            <li {...props}>
+              <Checkbox
+                icon={icon}
+                checkedIcon={checkedIcon}
+                style={{ marginRight: 8 }}
+                checked={selected}
               />
-            ))}
-          </Box>
-        )}
+              {option}
+            </li>
+          )}
+          sx={{ flex: 1, minWidth: 250 }} // Take available space, respect minWidth
+          renderInput={(params) => (
+            <TextField 
+              {...params} 
+              label="Filtrar por categorías" 
+              placeholder={selectedCategories.length > 0 ? "" : "Categorías"}
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <>
+                    <InputAdornment position="start" sx={{ pl: 0.5, color: 'action.active', mr: -0.5 }}>
+                      <FilterListIcon />
+                    </InputAdornment>
+                    {params.InputProps.startAdornment} 
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
       </Box>
 
       <GoogleMap
