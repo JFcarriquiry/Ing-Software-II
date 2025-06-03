@@ -1,12 +1,22 @@
 /// <reference types="vite/client" />
 
-import React, { useEffect, useState, ChangeEvent } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GoogleMap, MarkerF, useLoadScript } from '@react-google-maps/api';
 import axios from 'axios';
-// import io from 'socket.io-client'; // Ya no se importa io directamente aquí
 import { User } from '../hooks/useAuth';
 import ReserveCard from './ReserveCard';
-import { useSocket } from '../hooks/useSocket'; // Usar el hook centralizado
+import { useSocket } from '../hooks/useSocket';
+
+// Material-UI imports
+import TextField from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import Box from '@mui/material/Box';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import Autocomplete from '@mui/material/Autocomplete';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
 export interface Restaurant {
   id: number;
@@ -19,12 +29,15 @@ export interface Restaurant {
   phone?: string;
   email?: string;
   address?: string;
-  tags?: string[]; // <-- Añadido para soportar tags
+  tags?: string[];
 }
 
 interface MapProps {
   user: User;
 }
+
+const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 export default function Map({ user }: MapProps) {
   const { isLoaded } = useLoadScript({
@@ -38,21 +51,18 @@ export default function Map({ user }: MapProps) {
   const [availability, setAvailability] = useState<{ start: number; available_tables: number }[]>([]);
   const [selectedInterval, setSelectedInterval] = useState('');
   const [message, setMessage] = useState('');
-  const socket = useSocket(); // Usar el hook
+  const socket = useSocket();
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: -34.9011, lng: -56.1645 });
   
-  // Estado para tags seleccionados
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Obtener todos los tags únicos de los restaurantes para mostrar como opciones
-  const allTags = Array.from(
+  const allCategories = Array.from(
     new Set(restaurants.flatMap(r => r.tags || []))
-  );
+  ).sort();
 
-  // Filtrar restaurantes según los tags seleccionados
   const filteredRestaurants = restaurants.filter(r =>
-    selectedTags.length === 0 ||
-    (r.tags && selectedTags.every(tag => r.tags.includes(tag)))
+    selectedCategories.length === 0 ||
+    (r.tags && selectedCategories.every(category => r.tags!.includes(category)))
   );
 
   useEffect(() => {
@@ -65,7 +75,12 @@ export default function Map({ user }: MapProps) {
     console.log('Map: Setting up occupancy_update listener');
     const handleOccupancyUpdate = ({ restaurant_id }: { restaurant_id: number }) => {
       console.log(`Map: Occupancy update received for restaurant ${restaurant_id}`);
-      setRestaurants(prev => prev.map(r => r.id === restaurant_id ? { ...r } : r));
+      // Re-fetch or update specific restaurant data if needed, for now, just a log
+      // To trigger a re-render if occupancy affects display (e.g. available seats shown on map),
+      // you might need to update the restaurant in the state.
+      // For simplicity, if occupancy changes might affect filtering or display, re-fetch or update.
+      // This example just ensures the component is aware, but doesn't change restaurant data structure.
+      setRestaurants(prev => prev.map(r => r.id === restaurant_id ? { ...r } : r)); // Basic re-render trigger
     };
 
     socket.on('occupancy_update', handleOccupancyUpdate);
@@ -137,53 +152,87 @@ export default function Map({ user }: MapProps) {
     }
   };
 
-  // Estado para el texto de búsqueda
   const [searchText, setSearchText] = useState('');
 
   if (!isLoaded) return <p>Cargando mapa...</p>;
 
-  // Filtrar restaurantes por nombre y tags
   const visibleRestaurants = filteredRestaurants.filter(r =>
     r.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
     <>
-      <div style={{ margin: '1rem 0', display: 'flex', gap: 16, alignItems: 'center' }}>
-        <input
-          type="text"
-          placeholder="Buscar restaurante..."
+      <Box sx={{
+        // margin: '1rem 0', // Replaced   // For alignment with ReservationsList
+        marginBottom: 0,      // To be "pegado" to the map (bottom aligned with map top)
+        padding: '1rem',
+        backgroundColor: 'white',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        gap: 2,
+        alignItems: 'center',
+        flexWrap: 'wrap',     // Allow wrapping if space is tight
+        width: '50%',         // Occupy half of the parent's width
+        // width: 'fit-content' // Removed
+      }}>
+        <TextField
+          label="Buscar restaurante"
+          variant="outlined"
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
-          style={{ padding: 6, borderRadius: 4, border: '1px solid #ccc', minWidth: 200 }}
+          // sx={{ width: '25%', minWidth: 200 }} // Replaced
+          sx={{ flex: 1, minWidth: 200 }} // Take available space, respect minWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
         />
-        {/* Selector de tags como dropdown con checklists */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <details>
-            <summary style={{ cursor: 'pointer', border: '1px solid #ccc', borderRadius: 4, padding: '4px 12px', background: '#f9f9f9', display: 'inline-block', minWidth: 120 }}>
-              {selectedTags.length === 0 ? 'Seleccionar tags' : selectedTags.join(', ')}
-            </summary>
-            <div style={{ position: 'absolute', zIndex: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 4, padding: 8, minWidth: 160, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              {allTags.map(tag => (
-                <label key={tag} style={{ display: 'block', marginBottom: 4, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedTags.includes(tag)}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      if (e.target.checked) {
-                        setSelectedTags((prev: string[]) => [...prev, tag]);
-                      } else {
-                        setSelectedTags((prev: string[]) => prev.filter((t: string) => t !== tag));
-                      }
-                    }}
-                  />
-                  &nbsp;{tag}
-                </label>
-              ))}
-            </div>
-          </details>
-        </div>
-      </div>
+        
+        <Autocomplete
+          multiple
+          id="categories-filter-checkboxes"
+          options={allCategories}
+          value={selectedCategories}
+          disableCloseOnSelect
+          getOptionLabel={(option) => option}
+          onChange={(event, newValue) => {
+            setSelectedCategories(newValue);
+          }}
+          renderOption={(props, option, { selected }) => (
+            <li {...props}>
+              <Checkbox
+                icon={icon}
+                checkedIcon={checkedIcon}
+                style={{ marginRight: 8 }}
+                checked={selected}
+              />
+              {option}
+            </li>
+          )}
+          sx={{ flex: 1, minWidth: 250 }} // Take available space, respect minWidth
+          renderInput={(params) => (
+            <TextField 
+              {...params} 
+              label="Filtrar por categorías" 
+              placeholder={selectedCategories.length > 0 ? "" : "Categorías"}
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <>
+                    <InputAdornment position="start" sx={{ pl: 0.5, color: 'action.active', mr: -0.5 }}>
+                      <FilterListIcon />
+                    </InputAdornment>
+                    {params.InputProps.startAdornment} 
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+      </Box>
 
       <GoogleMap
         center={center}
@@ -194,7 +243,7 @@ export default function Map({ user }: MapProps) {
           <MarkerF
             key={r.id}
             position={{ lat: Number(r.latitude), lng: Number(r.longitude) }}
-            title={`${r.name} (${r.seats_total} asientos totales)`}
+            title={`${r.name} (${r.seats_total/2} asientos totales)`}
             onClick={() => handleMarkerClick(r)}
             icon={{
               fillColor: '#ff2d00',
