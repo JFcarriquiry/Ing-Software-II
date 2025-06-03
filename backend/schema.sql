@@ -39,3 +39,7 @@ CREATE TABLE IF NOT EXISTS reservations (
     presence_confirmed_at TIMESTAMP,
     created_at            TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_restaurant_id ON users(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_user_id ON reservations(user_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_restaurant_id ON reservations(restaurant_id)
