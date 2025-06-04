@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User } from '../hooks/useAuth';
+import { Height } from '@mui/icons-material';
 
 interface Reservation {
   id: number;
@@ -64,7 +65,9 @@ const ReservationsList: React.FC<Props> = ({ user }) => {
   };
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div style={{ 
+      marginTop: 20
+    }}>
       <h2>Mis Reservas</h2>
       <ul>
         {reservations.map((r) => (
