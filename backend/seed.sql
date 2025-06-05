@@ -125,7 +125,7 @@ VALUES
 
 -- Add example restaurant users
 INSERT INTO users (email, password, name, role, restaurant_id) VALUES
-('restaurant1@example.com', 'restaurant123', 'Alquimista', 'restaurant', 1),
+('restaurant1@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Alquimista', 'restaurant', 1),
 ('restaurant2@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Café Misterio', 'restaurant', 2),
 ('restaurant3@example.com', '$2b$10$IyzmsvWiKGPZTuzFUmMcbeiDg1O7QmmW54nUgacDfqd4hKMcbWtHm', 'Charo', 'restaurant', 3);
 
