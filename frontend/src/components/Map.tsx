@@ -3,10 +3,20 @@
 import React, { useEffect, useState } from 'react';
 import { GoogleMap, MarkerF, useLoadScript } from '@react-google-maps/api';
 import axios from 'axios';
-// import io from 'socket.io-client'; // Ya no se importa io directamente aquí
 import { User } from '../hooks/useAuth';
 import ReserveCard from './ReserveCard';
-import { useSocket } from '../hooks/useSocket'; // Usar el hook centralizado
+import { useSocket } from '../hooks/useSocket';
+
+// Material-UI imports
+import TextField from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import Box from '@mui/material/Box';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import Autocomplete from '@mui/material/Autocomplete';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
 export interface Restaurant {
   id: number;
@@ -19,11 +29,15 @@ export interface Restaurant {
   phone?: string;
   email?: string;
   address?: string;
+  tags?: string[];
 }
 
 interface MapProps {
   user: User;
 }
+
+const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 export default function Map({ user }: MapProps) {
   const { isLoaded } = useLoadScript({
@@ -37,8 +51,19 @@ export default function Map({ user }: MapProps) {
   const [availability, setAvailability] = useState<{ start: number; available_tables: number }[]>([]);
   const [selectedInterval, setSelectedInterval] = useState('');
   const [message, setMessage] = useState('');
-  const socket = useSocket(); // Usar el hook
+  const socket = useSocket();
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: -34.9011, lng: -56.1645 });
+  
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const allCategories = Array.from(
+    new Set(restaurants.flatMap(r => r.tags || []))
+  ).sort();
+
+  const filteredRestaurants = restaurants.filter(r =>
+    selectedCategories.length === 0 ||
+    (r.tags && selectedCategories.every(category => r.tags!.includes(category)))
+  );
 
   useEffect(() => {
     if (user) {
@@ -46,19 +71,16 @@ export default function Map({ user }: MapProps) {
     }
   }, [user]);
 
-  // Efecto para escuchar 'occupancy_update' si es necesario para el mapa general
-  // Este es un ejemplo simple, podrías querer una lógica más sofisticada
   useEffect(() => {
     console.log('Map: Setting up occupancy_update listener');
     const handleOccupancyUpdate = ({ restaurant_id }: { restaurant_id: number }) => {
       console.log(`Map: Occupancy update received for restaurant ${restaurant_id}`);
-      // Opcional: Podrías querer recargar solo el restaurante afectado o todos
-      // Por ahora, recargamos todos para simplicidad, pero esto puede no ser ideal para el rendimiento
-      // axios.get('/api/restaurants').then((res) => setRestaurants(res.data));
-      // O actualizar solo el restaurante afectado si tienes su info
-      setRestaurants(prev => prev.map(r => r.id === restaurant_id ? { ...r, /* algún campo de ocupación si lo tienes */ } : r));
-      // Considera si este evento es realmente necesario para el mapa o si el dashboard es el único interesado.
-      // Si solo el dashboard usa este evento, puedes eliminar este listener del Map.
+      // Re-fetch or update specific restaurant data if needed, for now, just a log
+      // To trigger a re-render if occupancy affects display (e.g. available seats shown on map),
+      // you might need to update the restaurant in the state.
+      // For simplicity, if occupancy changes might affect filtering or display, re-fetch or update.
+      // This example just ensures the component is aware, but doesn't change restaurant data structure.
+      setRestaurants(prev => prev.map(r => r.id === restaurant_id ? { ...r } : r)); // Basic re-render trigger
     };
 
     socket.on('occupancy_update', handleOccupancyUpdate);
@@ -66,9 +88,8 @@ export default function Map({ user }: MapProps) {
     return () => {
       console.log('Map: Cleaning up occupancy_update listener');
       socket.off('occupancy_update', handleOccupancyUpdate);
-      // No desconectamos el socket aquí, ya que es una instancia compartida gestionada por useSocket
     };
-  }, [socket]); // Depende solo de la instancia del socket
+  }, [socket]);
 
   useEffect(() => {
     if (selected && date) {
@@ -79,22 +100,18 @@ export default function Map({ user }: MapProps) {
         )
         .then((res) => {
           setAvailability(res.data);
-          // If availability data is successfully fetched and not empty,
-          // set the selectedInterval to the first available slot.
           if (res.data && res.data.length > 0) {
             setSelectedInterval(res.data[0].start.toString());
           } else {
-            // If no availability, clear the selected interval
             setSelectedInterval('');
           }
         })
         .catch(err => {
           console.error(err);
-          setAvailability([]); // Clear availability on error
-          setSelectedInterval(''); // Clear selected interval on error
+          setAvailability([]);
+          setSelectedInterval('');
         });
     } else {
-      // If no selected restaurant or date, clear availability and interval
       setAvailability([]);
       setSelectedInterval('');
     }
@@ -108,7 +125,6 @@ export default function Map({ user }: MapProps) {
     setAvailability([]);
     setSelectedInterval('');
     setMessage('');
-    // Centrar el mapa en el restaurante seleccionado
     setCenter({ lat: Number(r.latitude), lng: Number(r.longitude) });
   };
 
@@ -136,20 +152,98 @@ export default function Map({ user }: MapProps) {
     }
   };
 
+  const [searchText, setSearchText] = useState('');
+
   if (!isLoaded) return <p>Cargando mapa...</p>;
+
+  const visibleRestaurants = filteredRestaurants.filter(r =>
+    r.name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <>
+      <Box sx={{
+        // margin: '1rem 0', // Replaced   // For alignment with ReservationsList
+        marginBottom: 0,      // To be "pegado" to the map (bottom aligned with map top)
+        padding: '1rem',
+        backgroundColor: 'white',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        gap: 2,
+        alignItems: 'center',
+        flexWrap: 'wrap',     // Allow wrapping if space is tight
+        width: '50%',         // Occupy half of the parent's width
+        // width: 'fit-content' // Removed
+      }}>
+        <TextField
+          label="Buscar restaurante"
+          variant="outlined"
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+          // sx={{ width: '25%', minWidth: 200 }} // Replaced
+          sx={{ flex: 1, minWidth: 200 }} // Take available space, respect minWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        
+        <Autocomplete
+          multiple
+          id="categories-filter-checkboxes"
+          options={allCategories}
+          value={selectedCategories}
+          disableCloseOnSelect
+          getOptionLabel={(option) => option}
+          onChange={(event, newValue) => {
+            setSelectedCategories(newValue);
+          }}
+          renderOption={(props, option, { selected }) => (
+            <li {...props}>
+              <Checkbox
+                icon={icon}
+                checkedIcon={checkedIcon}
+                style={{ marginRight: 8 }}
+                checked={selected}
+              />
+              {option}
+            </li>
+          )}
+          sx={{ flex: 1, minWidth: 250 }} // Take available space, respect minWidth
+          renderInput={(params) => (
+            <TextField 
+              {...params} 
+              label="Filtrar por categorías" 
+              placeholder={selectedCategories.length > 0 ? "" : "Categorías"}
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <>
+                    <InputAdornment position="start" sx={{ pl: 0.5, color: 'action.active', mr: -0.5 }}>
+                      <FilterListIcon />
+                    </InputAdornment>
+                    {params.InputProps.startAdornment} 
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+      </Box>
+
       <GoogleMap
         center={center}
         zoom={12}
         mapContainerStyle={{ height: '80vh', width: '100%' }}
       >
-        {restaurants.map((r) => (
+        {visibleRestaurants.map((r) => (
           <MarkerF
             key={r.id}
             position={{ lat: Number(r.latitude), lng: Number(r.longitude) }}
-            title={`${r.name} (${r.seats_total} asientos totales)`}
+            title={`${r.name} (${r.seats_total/2} asientos totales)`}
             onClick={() => handleMarkerClick(r)}
             icon={{
               fillColor: '#ff2d00',
@@ -177,8 +271,7 @@ export default function Map({ user }: MapProps) {
           setSelected={setSelected}
           message={message}
         />
-    )}
-
+      )}
     </>
   );
 }

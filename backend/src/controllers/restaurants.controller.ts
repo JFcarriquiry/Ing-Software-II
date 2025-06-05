@@ -2,10 +2,29 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { io } from '../sockets/occupancySocket';
 
-export const getAll = async (_: Request, res: Response) => {
-  const { rows } = await db.query(
-    'SELECT id, name, latitude, longitude, description, seats_total, (seats_total/2)::int AS tables_total FROM restaurants'
-  );
+export const getAll = async (req: Request, res: Response) => {
+  const { tag } = req.query;
+
+  let query = `
+    SELECT r.id, r.name, r.latitude, r.longitude, r.description, r.seats_total, (r.seats_total/2)::int AS tables_total,
+      COALESCE(
+        json_agg(t.name) FILTER (WHERE t.name IS NOT NULL), 
+        '[]'
+      ) AS tags
+    FROM restaurants r
+    LEFT JOIN restaurant_tags rt ON r.id = rt.restaurant_id
+    LEFT JOIN tags t ON rt.tag_id = t.id
+  `;
+  const params: any[] = [];
+
+  if (tag) {
+    query += ` WHERE t.name = $1`;
+    params.push(tag);
+  }
+
+  query += ` GROUP BY r.id`;
+
+  const { rows } = await db.query(query, params);
   res.json(rows);
 };
 
@@ -149,3 +168,5 @@ export const confirmPresence = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al confirmar presencia/ausencia' });
   }
 };
+
+
