@@ -5,7 +5,8 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 const LoginButton: React.FC = () => {
   const handleLogin = () => {
-    window.location.href = `http://localhost:3001/api/auth/google`;
+    const API_URL = import.meta.env.VITE_API_URL;
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   return (
