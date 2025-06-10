@@ -29,30 +29,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [restaurant, setRestaurant] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL;
+  console.log('URL DE LA API',API_URL)
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.role === 'restaurant') {
-            setRestaurant(data);
-          } else {
-            setUser(data);
-          }
+  const fetchUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.role === 'restaurant') {
+          setRestaurant(data);
+        } else {
+          setUser(data);
         }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchUser();
-  }, []);
+  fetchUser();
+}, [API_URL]); // importante para evitar warnings
 
 const login = async (email: string, password: string) => {
   const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -71,38 +72,40 @@ const login = async (email: string, password: string) => {
   };
 
   const restaurantLogin = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/restaurant/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
+  const response = await fetch(`${API_URL}/api/auth/restaurant/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password }),
+  });
 
-    if (!response.ok) {
-      throw new Error('Credenciales inválidas');
-    }
+  if (!response.ok) {
+    throw new Error('Credenciales inválidas');
+  }
 
-    const data = await response.json();
-    setRestaurant(data);
-  };
+  const data = await response.json();
+  setRestaurant(data);
+};
+
 
   const logout = () => {
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).finally(() => {
-      setUser(null);
-    });
-  };
+  fetch(`${API_URL}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  }).finally(() => {
+    setUser(null);
+  });
+};
 
-  const restaurantLogout = () => {
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).finally(() => {
-      setRestaurant(null);
-    });
-  };
+const restaurantLogout = () => {
+  fetch(`${API_URL}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  }).finally(() => {
+    setRestaurant(null);
+  });
+};
+
 
   const value = {
     user,
