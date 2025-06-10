@@ -106,7 +106,7 @@ const LocalAuthForm: React.FC = () => {
   });
   const { user, login } = useAuth();
   const navigate = useNavigate();
-
+  const API_URL = import.meta.env.VITE_API_URL;
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
     setError('');
