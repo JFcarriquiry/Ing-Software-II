@@ -26,7 +26,13 @@ const router = Router();
 
 // Local authentication routes
 router.post('/register', register);
-router.post('/login', login);
+router.post(
+  '/login',
+  passport.authenticate('local'),
+  (req: Request, res: Response) => {
+    res.json(req.user); // Ya está autenticado y guardado en la sesión
+  }
+);
 
 // Restaurant authentication route
 router.post('/restaurant/login', restaurantLogin);
