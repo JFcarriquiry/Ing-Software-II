@@ -55,6 +55,7 @@ export default function Map({ user }: MapProps) {
   const [center, setCenter] = useState<{ lat: number; lng: number }>({ lat: -34.9011, lng: -56.1645 });
   
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const allCategories = Array.from(
     new Set(restaurants.flatMap(r => r.tags || []))
@@ -67,7 +68,7 @@ export default function Map({ user }: MapProps) {
 
   useEffect(() => {
     if (user) {
-      axios.get('/api/restaurants').then((res) => setRestaurants(res.data));
+      axios.get(`${API_URL}/api/restaurants`, { withCredentials: true })
     }
   }, [user]);
 
@@ -93,11 +94,7 @@ export default function Map({ user }: MapProps) {
 
   useEffect(() => {
     if (selected && date) {
-      axios
-        .get<{ start: number; available_tables: number }[]>(
-          `/api/restaurants/${selected.id}/availability?date=${date}`,
-          { withCredentials: true }
-        )
+      axios.get(`${API_URL}/api/restaurants/${selected.id}/availability?date=${date}`, { withCredentials: true })
         .then((res) => {
           setAvailability(res.data);
           if (res.data && res.data.length > 0) {
@@ -118,7 +115,7 @@ export default function Map({ user }: MapProps) {
   }, [selected, date]);
 
   const handleMarkerClick = async (r: Restaurant) => {
-    const res = await axios.get(`/api/restaurants/${r.id}`);
+    const res = await axios.get(`${API_URL}/api/restaurants/${r.id}`, { withCredentials: true })
     setSelected(res.data);
     setGuests(1);
     setDate('');
@@ -132,7 +129,7 @@ export default function Map({ user }: MapProps) {
     setMessage('');
     try {
       const res = await axios.post(
-        '/api/reservations',
+        `${API_URL}/api/reservations`,
         {
           restaurant_id: selected?.id,
           reservation_at: Number(selectedInterval),
