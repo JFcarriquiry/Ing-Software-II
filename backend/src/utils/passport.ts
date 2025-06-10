@@ -1,5 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { Strategy as LocalStrategy } from 'passport-local';
 import { db } from '../db';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -17,6 +18,20 @@ passport.use(new GoogleStrategy({
     [google_id, email]
   );
   return done(null, rows[0]);
+}));
+
+passport.use(new LocalStrategy({
+  usernameField: 'email',
+  passwordField: 'password'
+}, async (email, password, done) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1 AND password = $2', [email, password]);
+    const user = rows[0];
+    if (!user) return done(null, false, { message: 'Credenciales inválidas' });
+    return done(null, user);
+  } catch (err) {
+    return done(err);
+  }
 }));
 
 passport.serializeUser((user: any, done: (err: any, id?: any) => void) => done(null, user.id));
