@@ -28,6 +28,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [restaurant, setRestaurant] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -53,8 +54,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     fetchUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
+const login = async (email: string, password: string) => {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
