@@ -23,7 +23,7 @@ const ReservationsList: React.FC<Props> = ({ user }) => {
   const fetchReservations = () => {
     setLoading(true);
     axios
-      .get<Reservation[]>('/api/reservations', { withCredentials: true })
+      .get<Reservation[]>(`${API_URL}/api/reservations`, { withCredentials: true })
       .then((res) => setReservations(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -43,7 +43,7 @@ const ReservationsList: React.FC<Props> = ({ user }) => {
   const handleCancel = (id: number) => {
     if (!window.confirm('¿Seguro que desea cancelar esta reserva?')) return;
     axios
-      .delete(`/api/reservations/${id}`, { withCredentials: true })
+      .delete(`${API_URL}/api/reservations/${id}`, { withCredentials: true })
       .then(() => {
         window.alert('Reserva cancelada');
         window.dispatchEvent(new Event('reservation-cancelled'));
